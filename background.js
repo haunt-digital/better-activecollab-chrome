@@ -16,11 +16,17 @@ chrome.runtime.onInstalled.addListener(function() {
 chrome.tabs.onUpdated.addListener(
   function(tabId, changeInfo, tab) {
     // The URL has changed and is relevant. Send the info to the tab / extension.
-    if (changeInfo.url && changeInfo.url.includes('estimates')) {
-      chrome.tabs.sendMessage( tabId, {
-        message: 'update',
-        url: changeInfo.url
-      })
+    if (changeInfo.url) {
+      let regResponse = changeInfo.url.match(/^https:\/\/app\.activecollab\.com\/(\d+)\/projects\/(\d+)$/);
+      if (regResponse) {
+        chrome.tabs.sendMessage( tabId, {
+          message: 'urlChange',
+          url: changeInfo.url,
+          changeInfo,
+          userID: regResponse[1],
+          projectID: regResponse[2]
+        })
+      }
     }
   }
 );

@@ -10,8 +10,9 @@
   "content_scripts": [
     {
       "matches": [
-        "https://app.activecollab.com/*"
+        "https://app.activecollab.com/*/projects/*"
       ],
+      "exclude_globs": ["*activecollab.com/*/projects/*/*"],
       "js": ["content.js"]
     }
   ],

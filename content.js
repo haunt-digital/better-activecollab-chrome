@@ -4,7 +4,7 @@ console.log('Welcome home.');
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
     // Listen for update messages from background.js
-    if (request.message === 'update') {
-      console.log(request.url);
+    if (request.message === 'urlChange') {
+      console.log('CHANGE:', request);
     }
 });
