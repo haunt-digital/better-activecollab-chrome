@@ -15,18 +15,12 @@ chrome.runtime.onInstalled.addListener(function() {
 // Listen for changes from the ActiveCollab website
 chrome.tabs.onUpdated.addListener(
   function(tabId, changeInfo, tab) {
-    // The URL has changed and is relevant. Send the info to the tab / extension.
+    // The URL has changed. Send the info to the tab / extension.
     if (changeInfo.url) {
-      let regResponse = changeInfo.url.match(/^https:\/\/app\.activecollab\.com\/(\d+)\/projects\/(\d+)$/);
-      if (regResponse) {
-        chrome.tabs.sendMessage( tabId, {
-          message: 'urlChange',
-          url: changeInfo.url,
-          changeInfo,
-          userID: regResponse[1],
-          projectID: regResponse[2]
-        })
-      }
+      chrome.tabs.sendMessage( tabId, {
+        message: 'urlChange',
+        url: changeInfo.url
+      })
     }
   }
 );
