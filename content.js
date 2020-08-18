@@ -15,12 +15,21 @@ function collateEstimates(url) {
   let urlMatch = url.match(/^https:\/\/app\.activecollab\.com\/(\d+)\/projects\/(\d+)$/);
   if (!urlMatch) return;
   const userID = urlMatch[1], projectID = urlMatch[2]
-
   console.log('Estimation:', projectID, userID, `https://app.activecollab.com/${userID}/api/v1/projects/${projectID}/tasks`);
-  fetch(`https://app.activecollab.com/${userID}/api/v1/projects/${projectID}/tasks`).then((r) => {
-    console.log('REsponse is:', r);
-    r.json().then((b) =>
-      console.log(b, b.tracked_time)
-    )
-  });
+  fetch(`https://app.activecollab.com/${userID}/api/v1/projects/${projectID}/tasks`).then((r) =>
+    r.json().then((b) => {
+      // Get all the task lists id
+      // Split the tasks into task lists
+      // Map the task lists to overall estimate times
+      // Loop through each task list
+        // Loop through each task in the list
+          // If this is a closed ticket
+            // Add on the estimated time
+
+      // Loop through the lists that have time estimates
+        // Get the list by ID or name in the DOM
+        // Display the estimated time by the list
+      console.log(b)
+    })
+  );
 }
