@@ -14,22 +14,28 @@ function collateEstimates(url) {
   // Only run if the URL is valid. Pull the data from it if it is
   let urlMatch = url.match(/^https:\/\/app\.activecollab\.com\/(\d+)\/projects\/(\d+)$/);
   if (!urlMatch) return;
-  const userID = urlMatch[1], projectID = urlMatch[2]
-  console.log('Estimation:', projectID, userID, `https://app.activecollab.com/${userID}/api/v1/projects/${projectID}/tasks`);
-  fetch(`https://app.activecollab.com/${userID}/api/v1/projects/${projectID}/tasks`).then((r) =>
-    r.json().then((b) => {
-      // Get all the task lists id
-      // Split the tasks into task lists
-      // Map the task lists to overall estimate times
-      // Loop through each task list
-        // Loop through each task in the list
-          // If this is a closed ticket
-            // Add on the estimated time
 
+  const userID = urlMatch[1], projectID = urlMatch[2];
+  fetch(`https://app.activecollab.com/${userID}/api/v1/projects/${projectID}/tasks`).then((response) =>
+    response.json().then((data) => {
+      // Get all the task lists id, Split the tasks into task lists
+      let taskLists = data.task_lists.map(list =>
+        ({
+          id: list.id,
+          sumEstimate: 0,
+          tasks: data.tasks.filter(task => task.task_list_id === list.id)
+        })
+      );
+      // Sum all task estimate times in each list
+      taskLists?.forEach(list =>
+        list?.tasks?.forEach(task => {
+          if (!task?.is_completed && !task?.is_trashed) list.sumEstimate += task.estimate;
+        })
+      );
+      console.log('TASKS POST SORT:', taskLists);
       // Loop through the lists that have time estimates
         // Get the list by ID or name in the DOM
         // Display the estimated time by the list
-      console.log(b)
     })
   );
 }
