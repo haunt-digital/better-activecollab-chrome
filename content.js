@@ -22,7 +22,8 @@ function getSummedEstimates(data) {
   // Sum all task estimate times in each list
   taskLists?.forEach(list =>
     list?.tasks?.forEach(task => {
-      if (!task?.is_completed && !task?.is_trashed) list.sumEstimate += task.estimate;
+      // TODO get completed list
+      if (!task?.is_trashed) list.sumEstimate += task.estimate;
     })
   );
   return taskLists;
@@ -42,13 +43,16 @@ function displaySummedEstimates(list, listTitleDivs) {
   // TODO ideally, we should wait for the component to appear.
   setTimeout(() => {
     // TODO only add if one doesn't already exist. May need to delete old one, updates may not work.
-    //TODO not always updating on page switching
     // TODO does not work for list view
     // Copy an element if it exists, and edit the new element to display the estimates
-    if (titleWrapperDiv?.children.length === 2) {
+    const childCount = titleWrapperDiv?.children.length;
+    if (childCount === 2) {
       let hourDisplay = titleWrapperDiv.children.item(1).cloneNode(true);
       hourDisplay.innerHTML = `[${list.sumEstimate} Hours]`;
       titleWrapperDiv.appendChild(hourDisplay);
+    } else if (childCount === 3) {
+      let hourDisplay = titleWrapperDiv.children.item(2);
+      if (hourDisplay.innerHTML.contains("Hours")) hourDisplay.innerHTML = `[${list.sumEstimate} Hours]`;
     }
   }, 500);
 }
@@ -56,20 +60,31 @@ function displaySummedEstimates(list, listTitleDivs) {
 function collateEstimates(url) {
   // Only run if the URL is valid. Pull the data from it if it is
   let urlMatch = url.match(/^https:\/\/app\.activecollab\.com\/(\d+)\/projects\/(\d+)$/);
-  if (!urlMatch) return;
+  console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>');
+  if (!urlMatch) {
+    document.removeEventListener('DOMNodeInserted', nodesUpdated);
+    return;
+  }
+  document.addEventListener('DOMNodeInserted', nodesUpdated);
 
   const userID = urlMatch[1], projectID = urlMatch[2];
   fetch(`https://app.activecollab.com/${userID}/api/v1/projects/${projectID}/tasks`).then((response) =>
     response.json().then((data) => {
 
       let taskLists = getSummedEstimates(data);
+      console.log(taskLists);
 
       const listTitleDivs = document.getElementsByClassName('task_list_name_header');
       taskLists.forEach(list => {
         // Only display estimates if there are more than 0 hours
         if (list?.sumEstimate && list.sumEstimate > 0) displaySummedEstimates(list, listTitleDivs);
-        
       });
     })
   );
+  console.log('----------------------------------------------------------');
 }
+
+function nodesUpdated(event) {
+  // console.log(typeof event.target);
+  // console.log(event.target.classList?.contains('column-card-task'));
+};
