@@ -15,32 +15,41 @@ function nodesUpdated(event) {
   }, 1000);
 };
 
-function getSummedEstimates(data) {
+function getSummedEstimates(data, archiveData) {
+  // TODO 'create lists' should be own method
   // Get all the task lists id, Split the tasks into task lists
   let taskLists = data.task_lists.map(list =>
     ({
-      id: list.id,
       name: list.name,
       sumEstimate: 0,
       tasks: data.tasks.filter(task => task.task_list_id === list.id)
     })
   );
+  // Add all the completed tasks on
+  let completedTaskList = 
+    ({
+      name: 'Completed Tasks',
+      sumEstimate: 0,
+      tasks: data.completed_task_ids.map(taskID => archiveData.find(task =>
+        task && task.is_completed && !task.is_trashed && task.id === taskID
+      )) || []
+    });
+  taskLists.push(completedTaskList);
   // Sum all task estimate times in each list
   taskLists?.forEach(list =>
     list?.tasks?.forEach(task => {
-      // TODO get completed list
-      if (!task?.is_trashed) list.sumEstimate += task.estimate;
+      if (task && !task.is_trashed) list.sumEstimate += task.estimate;
     })
   );
   return taskLists;
 }
-
+// TODO mix this and the above. SHould be able to simplify and speed up.
 // Sums the tracked hours for tasks in a list and appends the data to the list
 function appendActualHours(taskLists, data) {
   taskLists = taskLists.map(list => {
     list = { ...list, sumTracked: 0 };
     list?.tasks?.forEach(task => {
-      let timedTasks = data.filter((time) => time.parent_id === task.id);
+      let timedTasks = data.filter((time) => time?.parent_id === task?.id);
       if (timedTasks?.length > 0) timedTasks.forEach((tTask) => list.sumTracked += tTask.value);
     });
     return list;
@@ -49,8 +58,7 @@ function appendActualHours(taskLists, data) {
 }
 
 function getDisplayText(list) {
-  let str = list?.sumEstimate > 0 ? `[${list.sumEstimate}h Est.]` : '';
-  return `${str}${list?.sumTracked > 0 ? ` [${list.sumTracked}h Done]` : ''}`;
+  return `[${list.sumEstimate || '0'} / ${list.sumTracked || '0'}]`;
 }
 
 function displaySummedEstimates(list, listTitleDivs) {
@@ -93,30 +101,34 @@ function collateEstimates(url) {
   document.addEventListener('drop', nodesUpdated);
 
   const userID = urlMatch[1], projectID = urlMatch[2];
-  fetch(`https://app.activecollab.com/${userID}/api/v1/projects/${projectID}/tasks`).then((taskListRes) =>
-    fetch(`https://app.activecollab.com/${userID}/api/v1/projects/${projectID}/time-records`).then((timeRes) =>
-      taskListRes.json().then((taskListData) =>
-        timeRes.json().then((timeData) => {
-    
-          let taskLists = getSummedEstimates(taskListData);
-          taskLists = appendActualHours(taskLists, timeData.time_records);
-    
-          // Remove the old hour displays
-          let oldDisplays = document.getElementsByClassName('hour_display');
-          while (oldDisplays[0]) {
-            oldDisplays[0].parentNode.removeChild(oldDisplays[0]);
-          }
+  // TODO can these be awaits, instead?
+  fetch(`https://app.activecollab.com/${userID}/api/v1/projects/${projectID}/tasks`).then(taskListRes =>
+    fetch(`https://app.activecollab.com/${userID}/api/v1/projects/${projectID}/time-records`).then(timeRes =>
+      fetch(`https://app.activecollab.com/${userID}/api/v1/projects/${projectID}/tasks/archive`).then(archiveRes =>
+        taskListRes.json().then(taskListData =>
+          timeRes.json().then(timeData => 
+            archiveRes.json().then(archiveData => {
+              let taskLists = getSummedEstimates(taskListData, archiveData);
+              taskLists = appendActualHours(taskLists, timeData.time_records);
+        
+              // Remove the old hour displays
+              let oldDisplays = document.getElementsByClassName('hour_display');
+              while (oldDisplays[0]) {
+                oldDisplays[0].parentNode.removeChild(oldDisplays[0]);
+              }
 
-          const listTitleDivs = document.getElementsByClassName('task_list_name_header');
-          taskLists.forEach(list => {
-            // Only display estimates if there are more than 0 hours
-            if ((list?.sumEstimate && list.sumEstimate > 0)
-                || list?.sumTracked && list.sumTracked > 0) {
-              displaySummedEstimates(list, listTitleDivs);
-            }
-          });
-        })
+              const listTitleDivs = document.getElementsByClassName('task_list_name_header');
+              taskLists.forEach(list => {
+                // Only display estimates if there are more than 0 hours
+                if ((list?.sumEstimate && list.sumEstimate > 0)
+                    || list?.sumTracked && list.sumTracked > 0) {
+                  displaySummedEstimates(list, listTitleDivs);
+                }
+              });
+            })
+          )
+        )
       )
     )
-  );
+  )
 }
