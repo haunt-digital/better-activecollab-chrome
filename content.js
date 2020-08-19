@@ -35,6 +35,28 @@ function getSummedEstimates(data) {
   return taskLists;
 }
 
+function appendActualHours(taskLists, data) {
+  console.log('Append data:', taskLists, data);
+  // TODO get the value data
+  // TODO append the value data onto the relevant tasks int he lists
+  // TODO sum the value data of every task tied to e
+  // Loop over the task list
+  taskLists = taskLists.map(list => {
+    list = { ...list, sumTracked: 0 };
+    list?.tasks?.forEach(task => {
+      let timedTasks = data.filter((time) => time.parent_id === task.id);
+      if (timedTasks?.length > 0) timedTasks.forEach((tTask) => list.sumTracked += tTask.value);
+    });
+    return list;
+  });
+  console.log('Tracked:', taskLists);
+  // Track the sum of all values in this list
+  // Loop over the tasks
+  // Loop over the data
+  // If data id matches task id, add the value to the list sum
+  return taskLists;
+}
+
 function displaySummedEstimates(list, listTitleDivs) {
   // Get the div which contains our list name in it's children
   let titleWrapperDiv;
@@ -78,22 +100,27 @@ function collateEstimates(url) {
   document.addEventListener('drop', nodesUpdated);
 
   const userID = urlMatch[1], projectID = urlMatch[2];
-  fetch(`https://app.activecollab.com/${userID}/api/v1/projects/${projectID}/tasks`).then((response) =>
-    response.json().then((data) => {
+  fetch(`https://app.activecollab.com/${userID}/api/v1/projects/${projectID}/tasks`).then((taskListRes) =>
+    fetch(`https://app.activecollab.com/${userID}/api/v1/projects/${projectID}/time-records`).then((timeRes) =>
+      taskListRes.json().then((taskListData) =>
+        timeRes.json().then((timeData) => {
+    
+          let taskLists = getSummedEstimates(taskListData);
+          taskLists = appendActualHours(taskLists, timeData.time_records);
+    
+          // Remove the old hour displays
+          let oldDisplays = document.getElementsByClassName('hour_display');
+          while (oldDisplays[0]) {
+            oldDisplays[0].parentNode.removeChild(oldDisplays[0]);
+          }
 
-      let taskLists = getSummedEstimates(data);
-
-      const listTitleDivs = document.getElementsByClassName('task_list_name_header');
-      // Remove the old hour displays
-      let oldDisplays = document.getElementsByClassName('hour_display');
-      while (oldDisplays[0]) {
-        oldDisplays[0].parentNode.removeChild(oldDisplays[0]);
-      }
-
-      taskLists.forEach(list => {
-        // Only display estimates if there are more than 0 hours
-        if (list?.sumEstimate && list.sumEstimate > 0) displaySummedEstimates(list, listTitleDivs);
-      });
-    })
+          const listTitleDivs = document.getElementsByClassName('task_list_name_header');
+          taskLists.forEach(list => {
+            // Only display estimates if there are more than 0 hours
+            if (list?.sumEstimate && list.sumEstimate > 0) displaySummedEstimates(list, listTitleDivs);
+          });
+        })
+      )
+    )
   );
 }
