@@ -35,12 +35,8 @@ function getSummedEstimates(data) {
   return taskLists;
 }
 
+// Sums the tracked hours for tasks in a list and appends the data to the list
 function appendActualHours(taskLists, data) {
-  console.log('Append data:', taskLists, data);
-  // TODO get the value data
-  // TODO append the value data onto the relevant tasks int he lists
-  // TODO sum the value data of every task tied to e
-  // Loop over the task list
   taskLists = taskLists.map(list => {
     list = { ...list, sumTracked: 0 };
     list?.tasks?.forEach(task => {
@@ -49,11 +45,6 @@ function appendActualHours(taskLists, data) {
     });
     return list;
   });
-  console.log('Tracked:', taskLists);
-  // Track the sum of all values in this list
-  // Loop over the tasks
-  // Loop over the data
-  // If data id matches task id, add the value to the list sum
   return taskLists;
 }
 
@@ -71,15 +62,12 @@ function displaySummedEstimates(list, listTitleDivs) {
       break;
     }
   };
-
-  // TODO this feels like a cop out, and will break if your internet is slow enough.
-  // TODO ideally, we should wait for the component to appear.
+  // TODO This is a copout, but it works. Try clean the times up a bit.
   setTimeout(() => {
-    // TODO only add if one doesn't already exist. May need to delete old one, updates may not work.
-    // TODO does not work for list view
     // Copy an element if it exists, and edit the new element to display the estimates
     const childCount = titleWrapperDiv?.children.length;
     // Add the current hours
+    // TODO update this to just select the old element by class, and update using that
     if (childCount === 2) {
       let hourDisplay = titleWrapperDiv.children.item(1).cloneNode(true);
       hourDisplay.innerHTML = getDisplayText(list);
