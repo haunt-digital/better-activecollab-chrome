@@ -9,6 +9,12 @@ chrome.runtime.onMessage.addListener(
     }
 });
 
+function nodesUpdated(event) {
+  setTimeout(() => {
+    collateEstimates(window.location.href);
+  }, 1000);
+};
+
 function getSummedEstimates(data) {
   // Get all the task lists id, Split the tasks into task lists
   let taskLists = data.task_lists.map(list =>
@@ -46,13 +52,18 @@ function displaySummedEstimates(list, listTitleDivs) {
     // TODO does not work for list view
     // Copy an element if it exists, and edit the new element to display the estimates
     const childCount = titleWrapperDiv?.children.length;
+    // Add the current hours
     if (childCount === 2) {
       let hourDisplay = titleWrapperDiv.children.item(1).cloneNode(true);
       hourDisplay.innerHTML = `[${list.sumEstimate} Hours]`;
+      hourDisplay.classList.add('hour_display');
       titleWrapperDiv.appendChild(hourDisplay);
     } else if (childCount === 3) {
       let hourDisplay = titleWrapperDiv.children.item(2);
-      if (hourDisplay.innerHTML.contains("Hours")) hourDisplay.innerHTML = `[${list.sumEstimate} Hours]`;
+      if (hourDisplay.innerHTML?.includes("Hours")) {
+        hourDisplay.classList.add('hour_display');
+        hourDisplay.innerHTML = `[${list.sumEstimate} Hours]`;
+      }
     }
   }, 500);
 }
@@ -60,31 +71,29 @@ function displaySummedEstimates(list, listTitleDivs) {
 function collateEstimates(url) {
   // Only run if the URL is valid. Pull the data from it if it is
   let urlMatch = url.match(/^https:\/\/app\.activecollab\.com\/(\d+)\/projects\/(\d+)$/);
-  console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>');
   if (!urlMatch) {
-    document.removeEventListener('DOMNodeInserted', nodesUpdated);
+    document.removeEventListener('drop', nodesUpdated);
     return;
   }
-  document.addEventListener('DOMNodeInserted', nodesUpdated);
+  document.addEventListener('drop', nodesUpdated);
 
   const userID = urlMatch[1], projectID = urlMatch[2];
   fetch(`https://app.activecollab.com/${userID}/api/v1/projects/${projectID}/tasks`).then((response) =>
     response.json().then((data) => {
 
       let taskLists = getSummedEstimates(data);
-      console.log(taskLists);
 
       const listTitleDivs = document.getElementsByClassName('task_list_name_header');
+      // Remove the old hour displays
+      let oldDisplays = document.getElementsByClassName('hour_display');
+      while (oldDisplays[0]) {
+        oldDisplays[0].parentNode.removeChild(oldDisplays[0]);
+      }
+
       taskLists.forEach(list => {
         // Only display estimates if there are more than 0 hours
         if (list?.sumEstimate && list.sumEstimate > 0) displaySummedEstimates(list, listTitleDivs);
       });
     })
   );
-  console.log('----------------------------------------------------------');
 }
-
-function nodesUpdated(event) {
-  // console.log(typeof event.target);
-  // console.log(event.target.classList?.contains('column-card-task'));
-};
