@@ -57,6 +57,11 @@ function appendActualHours(taskLists, data) {
   return taskLists;
 }
 
+function getDisplayText(list) {
+  let str = list?.sumEstimate > 0 ? `[${list.sumEstimate}h Est.]` : '';
+  return `${str}${list?.sumTracked > 0 ? ` [${list.sumTracked}h Done]` : ''}`;
+}
+
 function displaySummedEstimates(list, listTitleDivs) {
   // Get the div which contains our list name in it's children
   let titleWrapperDiv;
@@ -77,14 +82,14 @@ function displaySummedEstimates(list, listTitleDivs) {
     // Add the current hours
     if (childCount === 2) {
       let hourDisplay = titleWrapperDiv.children.item(1).cloneNode(true);
-      hourDisplay.innerHTML = `[${list.sumEstimate} Hours]`;
+      hourDisplay.innerHTML = getDisplayText(list);
       hourDisplay.classList.add('hour_display');
       titleWrapperDiv.appendChild(hourDisplay);
     } else if (childCount === 3) {
       let hourDisplay = titleWrapperDiv.children.item(2);
       if (hourDisplay.innerHTML?.includes("Hours")) {
         hourDisplay.classList.add('hour_display');
-        hourDisplay.innerHTML = `[${list.sumEstimate} Hours]`;
+        hourDisplay.innerHTML = getDisplayText(list);
       }
     }
   }, 500);
@@ -117,7 +122,10 @@ function collateEstimates(url) {
           const listTitleDivs = document.getElementsByClassName('task_list_name_header');
           taskLists.forEach(list => {
             // Only display estimates if there are more than 0 hours
-            if (list?.sumEstimate && list.sumEstimate > 0) displaySummedEstimates(list, listTitleDivs);
+            if ((list?.sumEstimate && list.sumEstimate > 0)
+                || list?.sumTracked && list.sumTracked > 0) {
+              displaySummedEstimates(list, listTitleDivs);
+            }
           });
         })
       )
