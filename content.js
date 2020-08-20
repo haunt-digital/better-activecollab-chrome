@@ -95,21 +95,51 @@ function displaySummedEstimates(list, listTitleDivs) {
   }, 500);
 }
 
-// Display '!' on cards over their estimate, and a '?' on ones without an estimate
+function updateCardFlag(element, flag) {
+  const displayParent = element.parentNode;
+  console.log('What do:', element, flag);
+  if (!flag || flag.length < 0) {
+    displayParent.removeChild(element);
+  } else {
+    element.innerHTML = flag;
+  }
+}
+
+// TODO could update this to handle the hour tracking too, just with a different format of data input
+// Would need to change the flagID thing to something else.
+function addCardFlag(element, flag, flagID) {
+  const displayParent = element?.firstChild?.firstChild;
+  let flagDisplay = displayParent?.firstChild?.cloneNode(true);
+  if (!flagDisplay) return;
+
+  flagDisplay.innerHTML = flag;
+  flagDisplay.dataset.flagId = flagID;
+  displayParent?.appendChild(flagDisplay);
+}
+
+// Display '!' on cards over their estimate, and a '?' on ones without an estimate, displayParent
 function displayCardWarnings(taskLists, projectID) {
-  // TODO how do we deal with the existing ones? Maybe call it task name too, append another class, dictate by that
-  // Map all existing task name elements to their respective tasks
-  // let taskElements = document.getElementsByClassName('task_name')
   taskLists.forEach(list =>
     list?.tasks?.forEach((task) => {
       if (task && !task.is_trashed) {
+        // TODO what do we do when we do not have data, but one exists?? DO we always have to update?
+        // That's a lot of query selectors...
+        // TODO document
+        const dataID = `Task-${task.id}-${projectID}`;
+        let existingFlag = document.querySelector(`[data-flag-id="${dataID}"]`);
+        let targetElement = existingFlag || document.querySelector(`[data-object-modal="${dataID}"]`);
+        console.log('Hang on, what:', document.querySelector(`[data-flag-id="${dataID}"]`), dataID)
+        let flag = '';
         if (!task.estimate || !task.estimate > 0) {
           console.log('Task has no estimate!:', task);
-          console.log(document.querySelector(`[data-object-modal="Task-${task.id}-${projectID}"]`));
+          flag = '?';
         }
         if (task?.time_tracked > task.estimate) {
-          console.log('Task over!:', task); 
-          console.log(document.querySelector(`[data-object-modal="Task-${task.id}-${projectID}"]`));
+          console.log('Task over!:', task);
+          flag += '!';
+        }
+        if (flag.length > 0 || existingFlag) {
+          existingFlag ? updateCardFlag(targetElement, flag) : addCardFlag(targetElement, flag, dataID);
         }
       }
     })
