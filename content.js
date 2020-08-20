@@ -27,14 +27,17 @@ function createTaskLists(data, archiveData) {
     )
   );
   // Add all the completed tasks on
+  const filteredTasks = data.completed_task_ids.map(taskID =>
+    archiveData.find(task =>
+      task && task.is_completed && !task.is_trashed && task.id === taskID
+    )
+  );
   let completedTaskList = (
     {
       name: 'Completed Tasks',
       sumEstimate: 0,
       sumTracked: 0,
-      tasks: data.completed_task_ids.map(taskID => archiveData.find(task =>
-        task && task.is_completed && !task.is_trashed && task.id === taskID
-      ))
+      tasks: filteredTasks
     }
   );
   taskLists.push(completedTaskList)
@@ -49,7 +52,10 @@ function getSummedEstimates(taskLists, timeRecords) {
       if (task && !task.is_trashed) list.sumEstimate += task.estimate;
       // Sum time tracked
       let timedTasks = timeRecords.filter((time) => time?.parent_id === task?.id);
-      if (timedTasks?.length > 0) timedTasks.forEach((tTask) => list.sumTracked += tTask.value);
+      if (timedTasks?.length > 0) timedTasks.forEach((tTask) => {
+        task.time_tracked = tTask.value;
+        return list.sumTracked += tTask.value;
+      });
     })
   );
   return newTaskLists;
@@ -89,6 +95,18 @@ function displaySummedEstimates(list, listTitleDivs) {
   }, 500);
 }
 
+// Display '!' on cards over their estimate, and a '?' on ones without an estimate
+function displayCardWarnings(taskLists) {
+  taskLists.forEach(list =>
+    list?.tasks?.forEach((task) => {
+      if (task && !task.is_trashed) {
+        if (!task.estimate || !task.estimate > 0) console.log('Task has no estimate!:', task); 
+        if (task?.time_tracked < task.estimate) console.log('Task over!:', task); 
+      }
+    })
+  );
+}
+
 function collateEstimates(url) {
   // Only run if the URL is valid. Pull the data from it if it is
   let urlMatch = url.match(/^https:\/\/app\.activecollab\.com\/(\d+)\/projects\/(\d+)$/);
@@ -107,6 +125,7 @@ function collateEstimates(url) {
         taskListRes.json().then(taskListData =>
           timeRes.json().then(timeData => 
             archiveRes.json().then(archiveData => {
+              // TODO doesn't run on adding a new task from the list approach... This may be annoying.
               let taskLists = createTaskLists(taskListData, archiveData);
               taskLists = getSummedEstimates(taskLists, timeData.time_records);
         
@@ -124,6 +143,8 @@ function collateEstimates(url) {
                   displaySummedEstimates(list, listTitleDivs);
                 }
               });
+
+              displayCardWarnings(taskLists);
             })
           )
         )
