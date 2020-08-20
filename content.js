@@ -96,12 +96,21 @@ function displaySummedEstimates(list, listTitleDivs) {
 }
 
 // Display '!' on cards over their estimate, and a '?' on ones without an estimate
-function displayCardWarnings(taskLists) {
+function displayCardWarnings(taskLists, projectID) {
+  // TODO how do we deal with the existing ones? Maybe call it task name too, append another class, dictate by that
+  // Map all existing task name elements to their respective tasks
+  // let taskElements = document.getElementsByClassName('task_name')
   taskLists.forEach(list =>
     list?.tasks?.forEach((task) => {
       if (task && !task.is_trashed) {
-        if (!task.estimate || !task.estimate > 0) console.log('Task has no estimate!:', task); 
-        if (task?.time_tracked < task.estimate) console.log('Task over!:', task); 
+        if (!task.estimate || !task.estimate > 0) {
+          console.log('Task has no estimate!:', task);
+          console.log(document.querySelector(`[data-object-modal="Task-${task.id}-${projectID}"]`));
+        }
+        if (task?.time_tracked > task.estimate) {
+          console.log('Task over!:', task); 
+          console.log(document.querySelector(`[data-object-modal="Task-${task.id}-${projectID}"]`));
+        }
       }
     })
   );
@@ -144,7 +153,7 @@ function collateEstimates(url) {
                 }
               });
 
-              displayCardWarnings(taskLists);
+              displayCardWarnings(taskLists, projectID);
             })
           )
         )
