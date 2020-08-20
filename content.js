@@ -61,6 +61,25 @@ function getSummedEstimates(taskLists, timeRecords) {
   return newTaskLists;
 }
 
+// Clones a given child into it's parent, places the content inside, styles it, and gives it an ID
+function addDisplayElement(element, content, styles, dataReference, dataID) {
+  const displayParent = element?.parentNode;
+  let displayElement = element.cloneNode(true);
+  if (!displayElement) return;
+
+  displayElement.setAttribute('style', styles);
+  displayElement.innerHTML = content;
+  displayElement.dataset[dataReference] = dataID;
+  displayParent?.appendChild(displayElement);
+}
+
+// Updates a display elements inner html to the given value. Removes it if no value is present.
+function updateDisplayElement(element, content) {
+  const displayParent = element.parentNode;
+  if (!content || content.length < 0) displayParent.removeChild(element);
+  else element.innerHTML = content;
+}
+
 function getDisplayText(list) {
   return `[${list.sumEstimate || '0'} / ${list.sumTracked || '0'}]`;
 }
@@ -95,25 +114,6 @@ function displaySummedEstimates(list, listTitleDivs) {
   }, 500);
 }
 
-// TODO could update this to handle the hour tracking too, just with a different format of data input
-// Would need to change the flagID thing to something else.
-function addCardFlag(element, flag, flagID) {
-  const displayParent = element?.firstChild?.firstChild;
-  let flagDisplay = displayParent?.firstChild?.cloneNode(true);
-  if (!flagDisplay) return;
-
-  flagDisplay.setAttribute('style', 'width: 20%; text-align: right;');
-  flagDisplay.innerHTML = flag;
-  flagDisplay.dataset.flagId = flagID;
-  displayParent?.appendChild(flagDisplay);
-}
-
-function updateCardFlag(element, flag) {
-  const displayParent = element.parentNode;
-  if (!flag || flag.length < 0) displayParent.removeChild(element);
-  else element.innerHTML = flag;
-}
-
 // Display '!' on cards over their estimate, and a '?' on ones without an estimate, displayParent
 function displayCardWarnings(taskLists, projectID) {
   taskLists.forEach(list =>
@@ -122,12 +122,14 @@ function displayCardWarnings(taskLists, projectID) {
         // TODO document
         const dataID = `Task-${task.id}-${projectID}`;
         let existingFlag = document.querySelector(`[data-flag-id="${dataID}"]`);
-        let targetElement = existingFlag || document.querySelector(`[data-object-modal="${dataID}"]`);
+        let targetElement = existingFlag
+                          || document.querySelector(`[data-object-modal="${dataID}"]`)?.firstChild?.firstChild?.firstChild;
         let flag = '';
         if (!task.estimate || !task.estimate > 0) flag = '🤷‍♀️';
         if (task?.time_tracked > task.estimate) flag += '🔥';
         if (flag.length > 0 || existingFlag) {
-          existingFlag ? updateCardFlag(targetElement, flag) : addCardFlag(targetElement, flag, dataID);
+          existingFlag ? updateDisplayElement(targetElement, flag)
+                      : addDisplayElement(targetElement, flag, 'width: 20%; text-align: right;', 'flagId', dataID);
         }
       }
     })
@@ -152,6 +154,7 @@ function collateEstimates(url) {
         taskListRes.json().then(taskListData =>
           timeRes.json().then(timeData => 
             archiveRes.json().then(archiveData => {
+              console.log('FETCH');
               // TODO doesn't run on adding a new task from the list approach... This may be annoying.
               let taskLists = createTaskLists(taskListData, archiveData);
               taskLists = getSummedEstimates(taskLists, timeData.time_records);
