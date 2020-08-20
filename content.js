@@ -99,10 +99,11 @@ function collateEstimates(url) {
   document.addEventListener('drop', nodesUpdated);
 
   const userID = urlMatch[1], projectID = urlMatch[2];
-  // TODO can these be awaits, instead?
-  fetch(`https://app.activecollab.com/${userID}/api/v1/projects/${projectID}/tasks`).then(taskListRes =>
-    fetch(`https://app.activecollab.com/${userID}/api/v1/projects/${projectID}/time-records`).then(timeRes =>
-      fetch(`https://app.activecollab.com/${userID}/api/v1/projects/${projectID}/tasks/archive`).then(archiveRes =>
+  const baseUrl = `https://app.activecollab.com/${userID}/api/v1/projects/${projectID}`;
+  // TODO Clean these more
+  fetch(`${baseUrl}/tasks`).then(taskListRes =>
+    fetch(`${baseUrl}/time-records`).then(timeRes =>
+      fetch(`${baseUrl}/tasks/archive`).then(archiveRes =>
         taskListRes.json().then(taskListData =>
           timeRes.json().then(timeData => 
             archiveRes.json().then(archiveData => {
