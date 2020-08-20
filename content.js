@@ -19,6 +19,7 @@ function nodesUpdated(event) {
 function createTaskLists(data, archiveData) {
   let taskLists = data.task_lists.map(list => (
       {
+        id: list.id,
         name: list.name,
         sumEstimate: 0,
         sumTracked: 0,
@@ -34,6 +35,7 @@ function createTaskLists(data, archiveData) {
   );
   let completedTaskList = (
     {
+      id: -1,
       name: 'Completed Tasks',
       sumEstimate: 0,
       sumTracked: 0,
@@ -64,6 +66,7 @@ function getSummedEstimates(taskLists, timeRecords) {
 // Clones a given child into it's parent, places the content inside, styles it, and gives it an ID
 function addDisplayElement(element, content, styles, dataReference, dataID) {
   const displayParent = element?.parentNode;
+  // TODO breaks sometimes, do we need a timeout?
   let displayElement = element.cloneNode(true);
   if (!displayElement) return;
 
@@ -81,10 +84,11 @@ function updateDisplayElement(element, content) {
 }
 
 function getDisplayText(list) {
+  if (!list.sumEstimate && !list.sumTracked) return '';
   return `[${list.sumEstimate || '0'} / ${list.sumTracked || '0'}]`;
 }
 
-function displaySummedEstimates(list, listTitleDivs) {
+function displaySummedEstimates(list, listTitleDivs, projectID) {
   // Get the div which contains our list name in it's children
   let titleWrapperDiv;
   for (let div of listTitleDivs) {
@@ -95,21 +99,14 @@ function displaySummedEstimates(list, listTitleDivs) {
   };
   // TODO This is a copout, but it works. Try clean the times up a bit.
   setTimeout(() => {
-    // Copy an element if it exists, and edit the new element to display the estimates
-    const childCount = titleWrapperDiv?.children.length;
-    // Add the current hours
-    // TODO update this to just select the old element by class, and update using that
-    if (childCount === 2) {
-      let hourDisplay = titleWrapperDiv.children.item(1).cloneNode(true);
-      hourDisplay.innerHTML = getDisplayText(list);
-      hourDisplay.classList.add('hour_display');
-      titleWrapperDiv.appendChild(hourDisplay);
-    } else if (childCount === 3) {
-      let hourDisplay = titleWrapperDiv.children.item(2);
-      if (hourDisplay.innerHTML?.includes("Hours")) {
-        hourDisplay.classList.add('hour_display');
-        hourDisplay.innerHTML = getDisplayText(list);
-      }
+    const dataID = `List-${list.id}-${projectID}`;
+    const existingHours = document.querySelector(`[data-hours-id="${dataID}"]`);
+    const targetElement = existingHours
+                      || titleWrapperDiv.children.item(1);
+    const hoursText = getDisplayText(list);
+    if (targetElement && hoursText.length > 0 || existingHours) {
+      existingHours ? updateDisplayElement(targetElement, hoursText)
+                  : addDisplayElement(targetElement, hoursText, '', 'hoursId', dataID);
     }
   }, 500);
 }
@@ -167,11 +164,7 @@ function collateEstimates(url) {
 
               const listTitleDivs = document.getElementsByClassName('task_list_name_header');
               taskLists.forEach(list => {
-                // Only display estimates if there are more than 0 hours
-                if ((list?.sumEstimate && list.sumEstimate > 0)
-                    || list?.sumTracked && list.sumTracked > 0) {
-                  displaySummedEstimates(list, listTitleDivs);
-                }
+                displaySummedEstimates(list, listTitleDivs, projectID);
               });
 
               displayCardWarnings(taskLists, projectID);
