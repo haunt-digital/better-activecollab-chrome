@@ -15,46 +15,44 @@ function nodesUpdated(event) {
   }, 1000);
 };
 
-function getSummedEstimates(data, archiveData) {
-  // TODO 'create lists' should be own method
-  // Get all the task lists id, Split the tasks into task lists
-  let taskLists = data.task_lists.map(list =>
-    ({
-      name: list.name,
-      sumEstimate: 0,
-      tasks: data.tasks.filter(task => task.task_list_id === list.id)
-    })
+// Get all tasks ordered into lists, and gather completed tasks together.
+function createTaskLists(data, archiveData) {
+  let taskLists = data.task_lists.map(list => (
+      {
+        name: list.name,
+        sumEstimate: 0,
+        sumTracked: 0,
+        tasks: data.tasks.filter(task => task.task_list_id === list.id)
+      }
+    )
   );
   // Add all the completed tasks on
-  let completedTaskList = 
-    ({
+  let completedTaskList = (
+    {
       name: 'Completed Tasks',
       sumEstimate: 0,
+      sumTracked: 0,
       tasks: data.completed_task_ids.map(taskID => archiveData.find(task =>
         task && task.is_completed && !task.is_trashed && task.id === taskID
-      )) || []
-    });
-  taskLists.push(completedTaskList);
-  // Sum all task estimate times in each list
-  taskLists?.forEach(list =>
-    list?.tasks?.forEach(task => {
-      if (task && !task.is_trashed) list.sumEstimate += task.estimate;
-    })
+      ))
+    }
   );
+  taskLists.push(completedTaskList)
   return taskLists;
 }
-// TODO mix this and the above. SHould be able to simplify and speed up.
-// Sums the tracked hours for tasks in a list and appends the data to the list
-function appendActualHours(taskLists, data) {
-  taskLists = taskLists.map(list => {
-    list = { ...list, sumTracked: 0 };
+
+// Sum all task estimate and tracked times in each list and store the data in the list
+function getSummedEstimates(taskLists, timeRecords) {
+  let newTaskLists = Object.assign([], taskLists);
+  newTaskLists?.forEach(list =>
     list?.tasks?.forEach(task => {
-      let timedTasks = data.filter((time) => time?.parent_id === task?.id);
+      if (task && !task.is_trashed) list.sumEstimate += task.estimate;
+      // Sum time tracked
+      let timedTasks = timeRecords.filter((time) => time?.parent_id === task?.id);
       if (timedTasks?.length > 0) timedTasks.forEach((tTask) => list.sumTracked += tTask.value);
-    });
-    return list;
-  });
-  return taskLists;
+    })
+  );
+  return newTaskLists;
 }
 
 function getDisplayText(list) {
@@ -108,8 +106,8 @@ function collateEstimates(url) {
         taskListRes.json().then(taskListData =>
           timeRes.json().then(timeData => 
             archiveRes.json().then(archiveData => {
-              let taskLists = getSummedEstimates(taskListData, archiveData);
-              taskLists = appendActualHours(taskLists, timeData.time_records);
+              let taskLists = createTaskLists(taskListData, archiveData);
+              taskLists = getSummedEstimates(taskLists, timeData.time_records);
         
               // Remove the old hour displays
               let oldDisplays = document.getElementsByClassName('hour_display');
