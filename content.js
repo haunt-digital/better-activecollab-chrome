@@ -9,9 +9,39 @@ chrome.runtime.onMessage.addListener(
     }
 });
 
-function nodesUpdated(event) {
+// Track additions to the DOM, trigger events if a card is added.
+var observer = new MutationObserver(function (e) {
+  let newTask = e.find(mu =>
+    Array.from(mu.addedNodes).find(n =>
+      n && n.classList?.contains('column-card-task') && n?.children.item(0)
+      && n?.children.item(0)?.getAttribute("href") !== ""
+    )
+  );
+  if (newTask) collateEstimates(window.location.href);
+});
+
+// Enable and disable the DOM addition observer.
+function setObserver(active) {
+  active ? observer?.observe(document.getElementsByClassName('columns_wrapper')[0], { childList: true, subtree: true })
+        : observer?.disconnect();
+}
+
+// Disable the observer on drag start so that drag add events are not counted.
+function dragStart(){
+  setObserver(false);
+}
+
+// Try and wait for the screen to actually exist
+setTimeout(() => {
+  setObserver(true);
+}, 1000);
+
+// User has finished a drag movement
+// TODO timeout needed?
+function dropPerformed() {
   setTimeout(() => {
     collateEstimates(window.location.href);
+    setObserver(true);
   }, 1000);
 };
 
@@ -67,7 +97,7 @@ function getSummedEstimates(taskLists, timeRecords) {
 function addDisplayElement(element, content, styles, dataReference, dataID) {
   const displayParent = element?.parentNode;
   // TODO breaks sometimes, do we need a timeout?
-  let displayElement = element.cloneNode(true);
+  let displayElement = element?.cloneNode(true);
   if (!displayElement) return;
 
   displayElement.setAttribute('style', styles);
@@ -137,10 +167,12 @@ function collateEstimates(url) {
   // Only run if the URL is valid. Pull the data from it if it is
   let urlMatch = url.match(/^https:\/\/app\.activecollab\.com\/(\d+)\/projects\/(\d+)$/);
   if (!urlMatch) {
-    document.removeEventListener('drop', nodesUpdated);
+    document.removeEventListener('drop', dropPerformed);
+    document.removeEventListener('dragstart', dragStart);
     return;
   }
-  document.addEventListener('drop', nodesUpdated);
+  document.addEventListener('drop', dropPerformed);
+  document.addEventListener('dragstart', dragStart);
 
   const userID = urlMatch[1], projectID = urlMatch[2];
   const baseUrl = `https://app.activecollab.com/${userID}/api/v1/projects/${projectID}`;
@@ -155,12 +187,6 @@ function collateEstimates(url) {
               // TODO doesn't run on adding a new task from the list approach... This may be annoying.
               let taskLists = createTaskLists(taskListData, archiveData);
               taskLists = getSummedEstimates(taskLists, timeData.time_records);
-        
-              // Remove the old hour displays
-              let oldDisplays = document.getElementsByClassName('hour_display');
-              while (oldDisplays[0]) {
-                oldDisplays[0].parentNode.removeChild(oldDisplays[0]);
-              }
 
               const listTitleDivs = document.getElementsByClassName('task_list_name_header');
               taskLists.forEach(list => {
