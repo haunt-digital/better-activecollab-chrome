@@ -13,9 +13,8 @@ If these icons aren't appearing for you, or you'd rather not be reminded that ev
 To enable this extension, follow the steps below:
 1. Download this Git repo somewhere easy to find.
 2. Unzip the repo file, if you downloaded it as a zip.
-3. Navigate to "chrome://extensions/" in your Chrome browser.
+3. Navigate to "[chrome://extensions/](chrome://extensions/)" in your Chrome browser.
 4. Enable "Developer mode" via the toggle in the top right of the page.
-IMAGE
 5. Click "Load unpacked" and find the downloaded file from before. Select the unzipped repo file from earlier to upload.
 6. Visit an Active Collab project's task page and see if it's worked.
 
@@ -28,7 +27,7 @@ If we ever need to update the plugin, doing so is nice and straight forward. If 
 
 If you downloaded the repo by cloning it somewhere, follow these steps.
 1. Git pull to update.
-2. Navigate to "chrome://extensions/" in your Chrome browser.
+2. Navigate to "[chrome://extensions/](chrome://extensions/)" in your Chrome browser.
 3. Make sure Developer mode is still enabled. Turn it on if not.
 4. Click "Update" at the top of the page, or the refresh arrow underneath this extension in the list.
 
