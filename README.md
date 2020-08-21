@@ -1,7 +1,7 @@
 # Better ActiveCollab Chrome Extension
 This is a simple chrome extension to add some extra data to the ActiveCollab tasks column view. This does not work on the list view.
 
-The extension will add the total estimates and tracked time for every task in a list. This will be displayed next to the number of tasks in a list in the format "\[Estimate / Tracked Time\], e.g: "Backlog (2) \[8 / 9\]".
+The extension will add the total estimates and tracked time for every task in a list. This will be displayed next to the number of tasks in a list in the format "\[Tracked Time / Estimate\], e.g: "Backlog (2) \[8 / 9\]".
 
 Each card in a list must also have an estimate added to it. If it does not have an estimate, a '🤷‍♀️' will be added to the right side of the card to remind you. How helpful.
 

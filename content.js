@@ -143,7 +143,7 @@ function updateDisplayElement(element, content) {
 
 function getDisplayText(list) {
   if (!list.sumEstimate && !list.sumTracked) return '';
-  return `[${list.sumEstimate || '0'} / ${list.sumTracked || '0'}]`;
+  return `[${list.sumTracked || '0'} / ${list.sumEstimate || '0'}]`;
 }
 
 // Displays estimate and tracked time info for each list.
