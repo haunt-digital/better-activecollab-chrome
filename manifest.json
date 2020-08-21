@@ -1,7 +1,7 @@
 {
-  "name": "AC Column Estimate Counter",
-  "version": "0.1",
-  "description": "Count some columns.",
+  "name": "Better ActiveCollab",
+  "version": "1.0",
+  "description": "Add list time estimation & tracking sums, and warnings to overdue or unestimated task cards.",
   "permissions": ["declarativeContent", "tabs"],
   "background": {
     "scripts": ["background.js"],
