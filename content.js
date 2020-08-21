@@ -183,7 +183,7 @@ function displayCardWarnings(taskLists, projectID) {
 
         let flag = '';
         if (!task.estimate || !task.estimate > 0) flag = '🤷‍♀️';
-        if (task?.time_tracked > task.estimate) flag += '🔥';
+        else if (task?.time_tracked > task.estimate) flag += '🔥';
 
         if (flag.length > 0 || existingFlag) {
           existingFlag ? updateDisplayElement(targetElement, flag)
