@@ -125,11 +125,10 @@ function getSummedEstimates(taskLists, timeRecords) {
 // Clones a given child into it's parent, places the content inside, styles it, and gives it an ID
 function addDisplayElement(element, content, styles, dataReference, dataID) {
   const displayParent = element?.parentNode;
-  // TODO breaks sometimes, do we need a timeout?
   let displayElement = element?.cloneNode(true);
   if (!displayElement) return;
 
-  displayElement.setAttribute('style', styles);
+  styles?.length > 0 && displayElement.setAttribute('style', styles);
   displayElement.innerHTML = content;
   displayElement.dataset[dataReference] = dataID;
   displayParent?.appendChild(displayElement);
@@ -147,6 +146,7 @@ function getDisplayText(list) {
   return `[${list.sumEstimate || '0'} / ${list.sumTracked || '0'}]`;
 }
 
+// Displays estimate and tracked time info for each list.
 function displaySummedEstimates(list, listTitleDivs, projectID) {
   // Get the div which contains our list name in it's children
   let titleWrapperDiv;
@@ -170,19 +170,21 @@ function displaySummedEstimates(list, listTitleDivs, projectID) {
   }, 500);
 }
 
-// Display '!' on cards over their estimate, and a '?' on ones without an estimate, displayParent
+// Display '🔥' on cards over their estimate, and a '🤷‍♀️' on ones without an estimate.
 function displayCardWarnings(taskLists, projectID) {
   taskLists.forEach(list =>
     list?.tasks?.forEach((task) => {
       if (task && !task.is_trashed) {
-        // TODO document
+        // Check if we have an existing display, or need to make a new one deep inside the task card
         const dataID = `Task-${task.id}-${projectID}`;
         let existingFlag = document.querySelector(`[data-flag-id="${dataID}"]`);
         let targetElement = existingFlag
                           || document.querySelector(`[data-object-modal="${dataID}"]`)?.firstChild?.firstChild?.firstChild;
+
         let flag = '';
         if (!task.estimate || !task.estimate > 0) flag = '🤷‍♀️';
         if (task?.time_tracked > task.estimate) flag += '🔥';
+
         if (flag.length > 0 || existingFlag) {
           existingFlag ? updateDisplayElement(targetElement, flag)
                       : addDisplayElement(targetElement, flag, 'width: 20%; text-align: right;', 'flagId', dataID);
@@ -192,19 +194,20 @@ function displayCardWarnings(taskLists, projectID) {
   );
 }
 
+// Sums all estimates for lists, finds overtime / no estimates for cards, and displays this data for the user.
 function collateEstimates(url) {
   if (!currLocationValid) return;
   let urlMatch = urlValidation(url).matchData;
   const userID = urlMatch[1], projectID = urlMatch[2];
-  const baseUrl = `https://app.activecollab.com/${userID}/api/v1/projects/${projectID}`;
+  const baseApiE = `https://app.activecollab.com/${userID}/api/v1/projects/${projectID}`;
 
   // Batch promises together and process in groups
-  const acApiPromises = [fetch(`${baseUrl}/tasks`), fetch(`${baseUrl}/time-records`), fetch(`${baseUrl}/tasks/archive`)];
+  const acApiPromises = [fetch(`${baseApiE}/tasks`), fetch(`${baseApiE}/time-records`), fetch(`${baseApiE}/tasks/archive`)];
   Promise.all(acApiPromises).then((responses) => {
     const jsonPromises = responses.map(res => res.json());
     Promise.all(jsonPromises).then((jsons) => {
+
       const taskListData = jsons[0], timeData = jsons[1], archiveData = jsons[2];
-      // TODO doesn't run on adding a new task from the list approach... This may be annoying.
       let taskLists = createTaskLists(taskListData, archiveData);
       taskLists = getSummedEstimates(taskLists, timeData.time_records);
 
@@ -212,7 +215,6 @@ function collateEstimates(url) {
       taskLists.forEach(list => {
         displaySummedEstimates(list, listTitleDivs, projectID);
       });
-
       displayCardWarnings(taskLists, projectID);
     });
   });
