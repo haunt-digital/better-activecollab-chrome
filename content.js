@@ -1,11 +1,28 @@
-// If we are being called at load, the start URL is correct.
-collateEstimates(window.location.href);
+let currLocationValid = urlValidation(window.location.href).valid;
+// Check if we are on the correct page. Apply / remove relevant event listeners
+function urlValidation(url) {
+  let matchData = url.match(/^https:\/\/app\.activecollab\.com\/(\d+)\/projects\/(\d+)$/);
+  if (!matchData) {
+    document.removeEventListener('drop', dropPerformed);
+    document.removeEventListener('dragstart', dragStart);
+    return { matchData: {}, valid: false };
+  }
+  document.addEventListener('drop', dropPerformed);
+  document.addEventListener('dragstart', dragStart);
+
+  return { matchData, valid: true };
+}
 
 // Listen for update messages from background.js
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
     if (request.message === 'urlChange') {
-      collateEstimates(request.url);
+      currLocationValid = urlValidation(request.url).valid;
+      if (currLocationValid) {
+        let columnChecker = setInterval(() => {
+          if (checkColumnsExist()) clearInterval(columnChecker);
+        }, 200);
+      }
     }
 });
 
@@ -31,10 +48,22 @@ function dragStart(){
   setObserver(false);
 }
 
-// Try and wait for the screen to actually exist
-setTimeout(() => {
-  setObserver(true);
-}, 1000);
+// Wait until the columns have fully loaded before starting
+function checkColumnsExist() {
+  if (!currLocationValid) return;
+  const colWrapper = document.getElementsByClassName('columns_wrapper')[0];
+  if (colWrapper && colWrapper?.getElementsByClassName('column-card-loader').length === 0) {
+    setObserver(true);
+    collateEstimates(window.location.href);
+    return true;
+  }
+  return false;
+};
+if (currLocationValid) {
+  let columnChecker = setInterval(() => {
+    if (checkColumnsExist()) clearInterval(columnChecker);
+  }, 200);
+}
 
 // User has finished a drag movement
 // TODO timeout needed?
@@ -128,11 +157,11 @@ function displaySummedEstimates(list, listTitleDivs, projectID) {
     }
   };
   // TODO This is a copout, but it works. Try clean the times up a bit.
+  // TODO is this waiting for an update, or an existing element?
   setTimeout(() => {
     const dataID = `List-${list.id}-${projectID}`;
     const existingHours = document.querySelector(`[data-hours-id="${dataID}"]`);
-    const targetElement = existingHours
-                      || titleWrapperDiv.children.item(1);
+    const targetElement = existingHours || titleWrapperDiv?.children.item(1);
     const hoursText = getDisplayText(list);
     if (targetElement && hoursText.length > 0 || existingHours) {
       existingHours ? updateDisplayElement(targetElement, hoursText)
@@ -164,40 +193,27 @@ function displayCardWarnings(taskLists, projectID) {
 }
 
 function collateEstimates(url) {
-  // Only run if the URL is valid. Pull the data from it if it is
-  let urlMatch = url.match(/^https:\/\/app\.activecollab\.com\/(\d+)\/projects\/(\d+)$/);
-  if (!urlMatch) {
-    document.removeEventListener('drop', dropPerformed);
-    document.removeEventListener('dragstart', dragStart);
-    return;
-  }
-  document.addEventListener('drop', dropPerformed);
-  document.addEventListener('dragstart', dragStart);
-
+  if (!currLocationValid) return;
+  let urlMatch = urlValidation(url).matchData;
   const userID = urlMatch[1], projectID = urlMatch[2];
   const baseUrl = `https://app.activecollab.com/${userID}/api/v1/projects/${projectID}`;
-  // TODO Clean these more
-  fetch(`${baseUrl}/tasks`).then(taskListRes =>
-    fetch(`${baseUrl}/time-records`).then(timeRes =>
-      fetch(`${baseUrl}/tasks/archive`).then(archiveRes =>
-        taskListRes.json().then(taskListData =>
-          timeRes.json().then(timeData => 
-            archiveRes.json().then(archiveData => {
-              console.log('FETCH');
-              // TODO doesn't run on adding a new task from the list approach... This may be annoying.
-              let taskLists = createTaskLists(taskListData, archiveData);
-              taskLists = getSummedEstimates(taskLists, timeData.time_records);
 
-              const listTitleDivs = document.getElementsByClassName('task_list_name_header');
-              taskLists.forEach(list => {
-                displaySummedEstimates(list, listTitleDivs, projectID);
-              });
+  // Batch promises together and process in groups
+  const acApiPromises = [fetch(`${baseUrl}/tasks`), fetch(`${baseUrl}/time-records`), fetch(`${baseUrl}/tasks/archive`)];
+  Promise.all(acApiPromises).then((responses) => {
+    const jsonPromises = responses.map(res => res.json());
+    Promise.all(jsonPromises).then((jsons) => {
+      const taskListData = jsons[0], timeData = jsons[1], archiveData = jsons[2];
+      // TODO doesn't run on adding a new task from the list approach... This may be annoying.
+      let taskLists = createTaskLists(taskListData, archiveData);
+      taskLists = getSummedEstimates(taskLists, timeData.time_records);
 
-              displayCardWarnings(taskLists, projectID);
-            })
-          )
-        )
-      )
-    )
-  )
+      const listTitleDivs = document.getElementsByClassName('task_list_name_header');
+      taskLists.forEach(list => {
+        displaySummedEstimates(list, listTitleDivs, projectID);
+      });
+
+      displayCardWarnings(taskLists, projectID);
+    });
+  });
 }
