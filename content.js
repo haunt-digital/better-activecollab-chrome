@@ -74,56 +74,6 @@ function dropPerformed() {
   }, 1000);
 };
 
-// Get all tasks ordered into lists, and gather completed tasks together.
-function createTaskLists(data, archiveData) {
-  let taskLists = data.task_lists.map(list => (
-      {
-        id: list.id,
-        name: list.name,
-        sumEstimate: 0,
-        sumTracked: 0,
-        tasks: data.tasks.filter(task => task.task_list_id === list.id)
-      }
-    )
-  );
-  // Add all the completed tasks on
-  const filteredTasks = data.completed_task_ids.map(taskID =>
-    archiveData.find(task =>
-      task && task.is_completed && !task.is_trashed && task.id === taskID
-    )
-  );
-  let completedTaskList = (
-    {
-      id: -1,
-      name: 'Completed Tasks',
-      sumEstimate: 0,
-      sumTracked: 0,
-      tasks: filteredTasks
-    }
-  );
-  taskLists.push(completedTaskList)
-  return taskLists;
-}
-
-// Sum all task estimate and tracked times in each list and store the data in the list
-function getSummedEstimates(taskLists, timeRecords) {
-  let newTaskLists = Object.assign([], taskLists);
-  newTaskLists?.forEach(list =>
-    list?.tasks?.forEach(task => {
-      if (task && !task.is_trashed) list.sumEstimate += task.estimate;
-      else return;
-
-      // Sum time tracked
-      let timedTasks = timeRecords.filter((time) => time?.parent_id === task?.id);
-      if (timedTasks?.length > 0) timedTasks.forEach((tTask) => {
-        task.time_tracked = tTask.value;
-        return list.sumTracked += tTask.value;
-      });
-    })
-  );
-  return newTaskLists;
-}
-
 // Create a new list, with a specific style for the 'completed' list
 function createList(list, isCompletedList = false) {
   return newList = {
@@ -262,21 +212,4 @@ function collateEstimates(url) {
       displayCardWarnings(taskLists, projectID);
     })
   );
-
-  // Batch promises together and process in groups
-  // const acApiPromises = [fetch(`${baseApiE}/tasks`), fetch(`${baseApiE}/time-records`), fetch(`${baseApiE}/tasks/archive`)];
-  // Promise.all(acApiPromises).then((responses) => {
-  //   const jsonPromises = responses.map(res => res.json());
-  //   Promise.all(jsonPromises).then((jsons) => {
-    
-  //     const taskListData = jsons[0], timeData = jsons[1], archiveData = jsons[2];
-  //     let taskLists = createTaskLists(taskListData, archiveData);
-
-  //     const listTitleDivs = document.getElementsByClassName('task_list_name_header');
-  //     taskLists.forEach(list => {
-  //       displaySummedEstimates(list, listTitleDivs, projectID);
-  //     });
-  //     displayCardWarnings(taskLists, projectID);
-  //   });
-  // });
 }
