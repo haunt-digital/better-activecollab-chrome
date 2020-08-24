@@ -148,7 +148,9 @@ function updateDisplayElement(element, content) {
 }
 
 function getDisplayText(list) {
-  if (list.tasks?.length === 0 || (!list.sumEstimate && !list.sumTracked)) return '';
+  if (list.tasks?.length === 0 || (list.sumEstimate === undefined && !list.sumTracked === undefined)) {
+    return '';
+  }
   return `[${list.sumTracked || '0'} / ${list.sumEstimate || '0'}]`;
 }
 
