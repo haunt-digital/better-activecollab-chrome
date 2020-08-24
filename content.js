@@ -111,6 +111,8 @@ function getSummedEstimates(taskLists, timeRecords) {
   newTaskLists?.forEach(list =>
     list?.tasks?.forEach(task => {
       if (task && !task.is_trashed) list.sumEstimate += task.estimate;
+      else return;
+
       // Sum time tracked
       let timedTasks = timeRecords.filter((time) => time?.parent_id === task?.id);
       if (timedTasks?.length > 0) timedTasks.forEach((tTask) => {
@@ -120,6 +122,50 @@ function getSummedEstimates(taskLists, timeRecords) {
     })
   );
   return newTaskLists;
+}
+
+// Create a new list, with a specific style for the 'completed' list
+function createList(list, isCompletedList = false) {
+  return newList = {
+    id: isCompletedList ? -1 : list.id,
+    name: isCompletedList ? 'Completed Tasks' : list.name,
+    sumEstimate: 0,
+    sumTracked: 0,
+    tasks: []
+  };
+}
+
+// Find target list in array. Create if none exists.
+// Return the index of the found / new list, and the updated lists.
+function findOrCreateList(lists, task, isCompletedList = false) {
+  const foundIndex = lists.findIndex(list =>
+    list.name === (isCompletedList ? 'Completed Tasks' : task.task_list)
+    && list.id === (isCompletedList ? -1 : task.task_list_id)
+  );
+  if (foundIndex >= 0) return { lists, index: foundIndex };
+
+  let returnLists = Object.assign([], lists);
+  returnList = returnLists.push(createList({ name: task.task_list, id: task.task_list_id }, isCompletedList));
+  return {
+    lists: returnLists,
+    index: returnLists.length - 1
+  };
+}
+
+// Seperate all tasks into list, and sum the data from all tasks in these lists.
+function createEstimatedLists(taskData) {
+  let lists = [];
+  taskData.forEach((task) => {
+    if (task) {
+      let listPair = findOrCreateList(lists, task, (task.completed_by || task.completed_on));
+      const i = listPair.index;
+      lists = listPair.lists;
+      lists[i].tasks.push(task);
+      lists[i].sumEstimate += task.estimated_time ? parseFloat(task.estimated_time) : 0;
+      lists[i].sumTracked += task.tracked_time ? parseFloat(task.tracked_time) : 0;
+    }
+  });
+  return lists;
 }
 
 // Clones a given child into it's parent, places the content inside, styles it, and gives it an ID
@@ -174,16 +220,16 @@ function displaySummedEstimates(list, listTitleDivs, projectID) {
 function displayCardWarnings(taskLists, projectID) {
   taskLists.forEach(list =>
     list?.tasks?.forEach((task) => {
-      if (task && !task.is_trashed) {
+      if (task) {
         // Check if we have an existing display, or need to make a new one deep inside the task card
         const dataID = `Task-${task.id}-${projectID}`;
         let existingFlag = document.querySelector(`[data-flag-id="${dataID}"]`);
         let targetElement = existingFlag
                           || document.querySelector(`[data-object-modal="${dataID}"]`)?.firstChild?.firstChild?.firstChild;
-
         let flag = '';
-        if (!task.estimate || !task.estimate > 0) flag = '🤷‍♀️';
-        else if (task?.time_tracked > task.estimate) flag += '🔥';
+        const taskEstimate = task?.estimated_time ? parseFloat(task.estimated_time) : 0;
+        if (!taskEstimate > 0) flag = '🤷‍♀️';
+        else if (task?.tracked_time > taskEstimate) flag += '🔥';
 
         if (flag.length > 0 || existingFlag) {
           existingFlag ? updateDisplayElement(targetElement, flag)
@@ -198,24 +244,39 @@ function displayCardWarnings(taskLists, projectID) {
 function collateEstimates(url) {
   if (!currLocationValid) return;
   let urlMatch = urlValidation(url).matchData;
+
   const userID = urlMatch[1], projectID = urlMatch[2];
-  const baseApiE = `https://app.activecollab.com/${userID}/api/v1/projects/${projectID}`;
+  const baseApiE = `https://app.activecollab.com/${userID}/api/v1/reports/run?`;
+  const apiFilters = 'include_subtasks=0&include_tracking_data=1&group_by=task&type=AssignmentFilter&include_all_projects=true';
+  const apiProjectFilter = `&project_filter=selected_${projectID}`;
 
-  // Batch promises together and process in groups
-  const acApiPromises = [fetch(`${baseApiE}/tasks`), fetch(`${baseApiE}/time-records`), fetch(`${baseApiE}/tasks/archive`)];
-  Promise.all(acApiPromises).then((responses) => {
-    const jsonPromises = responses.map(res => res.json());
-    Promise.all(jsonPromises).then((jsons) => {
-
-      const taskListData = jsons[0], timeData = jsons[1], archiveData = jsons[2];
-      let taskLists = createTaskLists(taskListData, archiveData);
-      taskLists = getSummedEstimates(taskLists, timeData.time_records);
+  fetch(`${baseApiE}${apiFilters}${apiProjectFilter}`).then((reportResponse) => 
+    reportResponse.json().then((report) => {
+      const tasks = Object.values(report.all.assignments);
+      const taskLists = createEstimatedLists(tasks);
 
       const listTitleDivs = document.getElementsByClassName('task_list_name_header');
       taskLists.forEach(list => {
         displaySummedEstimates(list, listTitleDivs, projectID);
       });
       displayCardWarnings(taskLists, projectID);
-    });
-  });
+    })
+  );
+
+  // Batch promises together and process in groups
+  // const acApiPromises = [fetch(`${baseApiE}/tasks`), fetch(`${baseApiE}/time-records`), fetch(`${baseApiE}/tasks/archive`)];
+  // Promise.all(acApiPromises).then((responses) => {
+  //   const jsonPromises = responses.map(res => res.json());
+  //   Promise.all(jsonPromises).then((jsons) => {
+    
+  //     const taskListData = jsons[0], timeData = jsons[1], archiveData = jsons[2];
+  //     let taskLists = createTaskLists(taskListData, archiveData);
+
+  //     const listTitleDivs = document.getElementsByClassName('task_list_name_header');
+  //     taskLists.forEach(list => {
+  //       displaySummedEstimates(list, listTitleDivs, projectID);
+  //     });
+  //     displayCardWarnings(taskLists, projectID);
+  //   });
+  // });
 }
