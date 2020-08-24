@@ -3,6 +3,7 @@ let currLocationValid = urlValidation(window.location.href).valid;
 function urlValidation(url) {
   let matchData = url.match(/^https:\/\/app\.activecollab\.com\/(\d+)\/projects\/(\d+)$/);
   if (!matchData) {
+    console.log('NO MATCH, REMOVE');
     document.removeEventListener('drop', dropPerformed);
     document.removeEventListener('dragstart', dragStart);
     return { matchData: {}, valid: false };
@@ -12,6 +13,9 @@ function urlValidation(url) {
 
   return { matchData, valid: true };
 }
+
+// Track changes to list.
+let globalLists = [];
 
 // Listen for update messages from background.js
 chrome.runtime.onMessage.addListener(
@@ -65,8 +69,7 @@ if (currLocationValid) {
   }, 200);
 }
 
-// User has finished a drag movement
-// TODO timeout needed?
+// User has finished a drag movement. Wait a second for data update.
 function dropPerformed() {
   setTimeout(() => {
     collateEstimates(window.location.href);
@@ -104,18 +107,26 @@ function findOrCreateList(lists, task, isCompletedList = false) {
 
 // Seperate all tasks into list, and sum the data from all tasks in these lists.
 function createEstimatedLists(taskData) {
-  let lists = [];
+  // Clear all past data from lists
+  globalLists = globalLists.map(list => ({
+    id: list.id,
+    name: list.name,
+    sumEstimate: 0,
+    sumTracked: 0,
+    tasks: []
+  }));
+  // Add new task data & sums to list
   taskData.forEach((task) => {
     if (task) {
-      let listPair = findOrCreateList(lists, task, (task.completed_by || task.completed_on));
+      let listPair = findOrCreateList(globalLists, task, (task.completed_by || task.completed_on));
       const i = listPair.index;
-      lists = listPair.lists;
-      lists[i].tasks.push(task);
-      lists[i].sumEstimate += task.estimated_time ? parseFloat(task.estimated_time) : 0;
-      lists[i].sumTracked += task.tracked_time ? parseFloat(task.tracked_time) : 0;
+      globalLists = listPair.lists;
+      globalLists[i].tasks.push(task);
+      globalLists[i].sumEstimate += task.estimated_time ? parseFloat(task.estimated_time) : 0;
+      globalLists[i].sumTracked += task.tracked_time ? parseFloat(task.tracked_time) : 0;
     }
   });
-  return lists;
+  return globalLists;
 }
 
 // Clones a given child into it's parent, places the content inside, styles it, and gives it an ID
@@ -138,7 +149,7 @@ function updateDisplayElement(element, content) {
 }
 
 function getDisplayText(list) {
-  if (!list.sumEstimate && !list.sumTracked) return '';
+  if (list.tasks?.length === 0 || (!list.sumEstimate && !list.sumTracked)) return '';
   return `[${list.sumTracked || '0'} / ${list.sumEstimate || '0'}]`;
 }
 
@@ -152,18 +163,14 @@ function displaySummedEstimates(list, listTitleDivs, projectID) {
       break;
     }
   };
-  // TODO This is a copout, but it works. Try clean the times up a bit.
-  // TODO is this waiting for an update, or an existing element?
-  setTimeout(() => {
-    const dataID = `List-${list.id}-${projectID}`;
-    const existingHours = document.querySelector(`[data-hours-id="${dataID}"]`);
-    const targetElement = existingHours || titleWrapperDiv?.children.item(1);
-    const hoursText = getDisplayText(list);
-    if (targetElement && hoursText.length > 0 || existingHours) {
-      existingHours ? updateDisplayElement(targetElement, hoursText)
-                  : addDisplayElement(targetElement, hoursText, '', 'hoursId', dataID);
-    }
-  }, 500);
+  const dataID = `List-${list.id}-${projectID}`;
+  const existingHours = document.querySelector(`[data-hours-id="${dataID}"]`);
+  const targetElement = existingHours || titleWrapperDiv?.children.item(1);
+  const hoursText = getDisplayText(list);
+  if (targetElement && hoursText.length > 0 || existingHours) {
+    existingHours ? updateDisplayElement(targetElement, hoursText)
+                : addDisplayElement(targetElement, hoursText, '', 'hoursId', dataID);
+  }
 }
 
 // Display '🔥' on cards over their estimate, and a '🤷‍♀️' on ones without an estimate.
@@ -200,15 +207,13 @@ function collateEstimates(url) {
   const apiFilters = 'include_subtasks=0&include_tracking_data=1&group_by=task&type=AssignmentFilter&include_all_projects=true';
   const apiProjectFilter = `&project_filter=selected_${projectID}`;
 
-  fetch(`${baseApiE}${apiFilters}${apiProjectFilter}`).then((reportResponse) => 
+  fetch(`${baseApiE}${apiFilters}${apiProjectFilter}`).then((reportResponse) =>
     reportResponse.json().then((report) => {
       const tasks = Object.values(report.all.assignments);
       const taskLists = createEstimatedLists(tasks);
 
       const listTitleDivs = document.getElementsByClassName('task_list_name_header');
-      taskLists.forEach(list => {
-        displaySummedEstimates(list, listTitleDivs, projectID);
-      });
+      taskLists.forEach(list => displaySummedEstimates(list, listTitleDivs, projectID));
       displayCardWarnings(taskLists, projectID);
     })
   );
