@@ -3,7 +3,6 @@ let currLocationValid = urlValidation(window.location.href).valid;
 function urlValidation(url) {
   let matchData = url.match(/^https:\/\/app\.activecollab\.com\/(\d+)\/projects\/(\d+)$/);
   if (!matchData) {
-    console.log('NO MATCH, REMOVE');
     document.removeEventListener('drop', dropPerformed);
     document.removeEventListener('dragstart', dragStart);
     return { matchData: {}, valid: false };
