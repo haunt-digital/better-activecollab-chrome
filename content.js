@@ -13,9 +13,6 @@ function urlValidation(url) {
   return { matchData, valid: true };
 }
 
-// Track changes to list.
-let globalLists = [];
-
 // Listen for update messages from background.js
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
@@ -103,6 +100,9 @@ function findOrCreateList(lists, task, isCompletedList = false) {
     index: returnLists.length - 1
   };
 }
+
+// Track changes to list globally, in case all tasks get removed from a list.
+let globalLists = [];
 
 // Seperate all tasks into list, and sum the data from all tasks in these lists.
 function createEstimatedLists(taskData) {
