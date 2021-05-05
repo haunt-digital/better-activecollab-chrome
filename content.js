@@ -210,6 +210,7 @@ function collateEstimates(url) {
 
   fetch(`${baseApiE}${apiFilters}${apiProjectFilter}`).then((reportResponse) =>
     reportResponse.json().then((report) => {
+      if (!report?.all?.assignments) return; // Avoid crash on projects with no tickets
       const tasks = Object.values(report.all.assignments);
       const taskLists = createEstimatedLists(tasks);
 
