@@ -129,15 +129,30 @@ function createEstimatedLists(taskData) {
 }
 
 // Clones a given child into it's parent, places the content inside, styles it, and gives it an ID
-function addDisplayElement(element, content, styles, dataReference, dataID) {
+function addHeaderElement(element, content, dataReference, dataID) {
   const displayParent = element?.parentNode;
   let displayElement = element?.cloneNode(true);
   if (!displayElement) return;
 
-  styles?.length > 0 && displayElement.setAttribute('style', styles);
   displayElement.innerHTML = content;
   displayElement.dataset[dataReference] = dataID;
   displayParent?.appendChild(displayElement);
+}
+
+
+function addCardElement(element, content, styles, classes, dataReference, dataID) {
+  const displayParent = element?.parentNode;
+  let displayElement = element?.cloneNode(true);
+  if (!displayElement) return;
+  // Adjust AC card and wrapper settings to allow our additions to fit
+  element?.classList?.add('tw-flex', 'tw-w-full');
+  displayParent?.classList?.add('tw-flex');
+
+  styles?.length > 0 && displayElement.setAttribute('style', styles);
+  classes?.length > 0 && displayElement.setAttribute('class', classes);
+  displayElement.innerHTML = content;
+  displayElement.dataset[dataReference] = dataID;
+  displayParent?.prepend(displayElement);
 }
 
 // Updates a display elements inner html to the given value. Removes it if no value is present.
@@ -170,7 +185,7 @@ function displaySummedEstimates(list, listTitleDivs, projectID) {
   const hoursText = getDisplayText(list);
   if (targetElement && hoursText.length > 0 || existingHours) {
     existingHours ? updateDisplayElement(targetElement, hoursText)
-                : addDisplayElement(targetElement, hoursText, '', 'hoursId', dataID);
+                : addHeaderElement(targetElement, hoursText, 'hoursId', dataID);
   }
 }
 
@@ -183,15 +198,22 @@ function displayCardWarnings(taskLists, projectID) {
         const dataID = `Task-${task.id}-${projectID}`;
         let existingFlag = document.querySelector(`[data-flag-id="${dataID}"]`);
         let targetElement = existingFlag
-                          || document.querySelector(`[data-object-modal="${dataID}"]`)?.firstChild?.firstChild?.firstChild;
+                          || document.querySelector(`[data-object-modal="${dataID}"]`)?.firstChild;
         let flag = '';
         const taskEstimate = task?.estimated_time ? parseFloat(task.estimated_time) : 0;
+
         if (!taskEstimate > 0) flag = '🤷‍♀️';
         else if (task?.tracked_time > taskEstimate) flag += '🔥';
 
         if (flag.length > 0 || existingFlag) {
           existingFlag ? updateDisplayElement(targetElement, flag)
-                      : addDisplayElement(targetElement, flag, 'width: 20%; text-align: right;', 'flagId', dataID);
+                      : addCardElement(
+                        targetElement,
+                        flag,
+                        'padding: 0.5rem; text-align: center; overflow: visible; z-index: 1; margin-right: 0.1rem;',
+                        'c-card column_card tw-flex',
+                        'flagId',
+                        dataID);
         }
       }
     })
