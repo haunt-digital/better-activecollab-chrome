@@ -62,7 +62,7 @@ function checkColumnsExist() {
 if (currLocationValid) {
   let columnChecker = setInterval(() => {
     if (checkColumnsExist()) clearInterval(columnChecker);
-  }, 200);
+  }, 50);
 }
 
 // User has finished a drag movement. Wait a second for data update.
@@ -70,7 +70,7 @@ function dropPerformed() {
   setTimeout(() => {
     collateEstimates(window.location.href);
     setObserver(true);
-  }, 500);
+  }, 100);
 };
 
 // Create a new list, with a specific style for the 'completed' list
