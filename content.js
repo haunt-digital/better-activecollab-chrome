@@ -212,7 +212,7 @@ function displayCardWarnings(taskLists, projectID) {
 
         if (flag.length > 0 || existingFlag) {
           // Decide styles based on how many flags there are. '🤷‍♀️' is 5 chars long, any more than that means more than 1 flag
-          styles = `${flag.length > 5 ? 'line-height: .8;' : ''} width: 13.4%; padding: 0.5rem; text-align: center; overflow: visible; z-index: 1; margin-right: 0.1rem;`;
+          styles = `${flag.length > 5 ? 'line-height: .8;' : ''} width: 13.4%; padding: 0.5rem; justify-content: center; overflow: visible; z-index: 1; margin-right: 3px;`;
           existingFlag ? updateDisplayElement(targetElement, flag, styles)
                       : addCardElement(
                         targetElement,
