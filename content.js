@@ -162,6 +162,7 @@ function updateDisplayElement(element, content, styles, classes, isCard) {
   else {
     element.innerHTML = content;
     styles?.length > 0 && element.setAttribute('style', styles);
+    classes?.length > 0 && element.setAttribute('class', classes);
     // Cards also update their parent and sibling styles
     if (isCard) {
       element?.nextElementSibling?.classList?.add('tw-flex', 'tw-w-full');
