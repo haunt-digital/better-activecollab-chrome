@@ -206,14 +206,16 @@ function displayCardWarnings(taskLists, projectID) {
         const taskEstimate = task?.estimated_time ? parseFloat(task.estimated_time) : 0;
 
         if (!taskEstimate > 0) flag = '🤷‍♀️';
-        else if (task?.tracked_time > taskEstimate) flag += '🔥';
+        if (task?.tracked_time > taskEstimate) flag += '🔥';
 
         if (flag.length > 0 || existingFlag) {
-          existingFlag ? updateDisplayElement(targetElement, flag)
+          // Decide styles based on how many flags there are. '🤷‍♀️' is 5 chars long, any more than that means more than 1 flag
+          styles = `${flag.length > 5 ? 'line-height: .8;' : ''} width: 13.4%; padding: 0.5rem; text-align: center; overflow: visible; z-index: 1; margin-right: 0.1rem;`;
+          existingFlag ? updateDisplayElement(targetElement, flag, styles)
                       : addCardElement(
                         targetElement,
                         flag,
-                        'padding: 0.5rem; text-align: center; overflow: visible; z-index: 1; margin-right: 0.1rem;',
+                        styles,
                         'c-card column_card tw-flex',
                         'flagId',
                         dataID);
