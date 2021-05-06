@@ -156,10 +156,13 @@ function addCardElement(element, content, styles, classes, dataReference, dataID
 }
 
 // Updates a display elements inner html to the given value. Removes it if no value is present.
-function updateDisplayElement(element, content) {
+function updateDisplayElement(element, content, styles) {
   const displayParent = element.parentNode;
   if (!content || content.length < 0) displayParent.removeChild(element);
-  else element.innerHTML = content;
+  else {
+    element.innerHTML = content;
+    styles?.length > 0 && element.setAttribute('style', styles);
+  }
 }
 
 function getDisplayText(list) {
