@@ -70,7 +70,7 @@ function dropPerformed() {
   setTimeout(() => {
     collateEstimates(window.location.href);
     setObserver(true);
-  }, 1000);
+  }, 500);
 };
 
 // Create a new list, with a specific style for the 'completed' list
