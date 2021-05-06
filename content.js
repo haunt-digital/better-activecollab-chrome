@@ -145,7 +145,7 @@ function addCardElement(element, content, styles, classes, dataReference, dataID
   let displayElement = element?.cloneNode(true);
   if (!displayElement) return;
   // Adjust AC card and wrapper settings to allow our additions to fit
-  element?.classList?.add('tw-flex', 'tw-w-full');
+  element?.classList?.add('tw-w-full');
   displayParent?.classList?.add('tw-flex');
 
   styles?.length > 0 && displayElement.setAttribute('style', styles);
@@ -165,7 +165,7 @@ function updateDisplayElement(element, content, styles, classes, isCard) {
     classes?.length > 0 && element.setAttribute('class', classes);
     // Cards also update their parent and sibling styles
     if (isCard) {
-      element?.nextElementSibling?.classList?.add('tw-flex', 'tw-w-full');
+      element?.nextElementSibling?.classList?.add('tw-w-full');
       displayParent?.classList?.add('tw-flex');
     }
   }
