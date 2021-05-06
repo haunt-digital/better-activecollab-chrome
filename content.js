@@ -169,7 +169,9 @@ function getDisplayText(list) {
   if (list.tasks?.length === 0 || (list.sumEstimate === undefined && !list.sumTracked === undefined)) {
     return '';
   }
-  return `[${list.sumTracked || '0'} / ${list.sumEstimate || '0'}]`;
+  return `[${
+    Math.round((list.sumTracked + Number.EPSILON) * 100) / 100 || "0"
+  } / ${Math.round((list.sumEstimate + Number.EPSILON) * 100) / 100 || "0"}]`;
 }
 
 // Displays estimate and tracked time info for each list.
