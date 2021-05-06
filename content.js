@@ -156,12 +156,17 @@ function addCardElement(element, content, styles, classes, dataReference, dataID
 }
 
 // Updates a display elements inner html to the given value. Removes it if no value is present.
-function updateDisplayElement(element, content, styles) {
+function updateDisplayElement(element, content, styles, classes, isCard) {
   const displayParent = element.parentNode;
   if (!content || content.length < 0) displayParent.removeChild(element);
   else {
     element.innerHTML = content;
     styles?.length > 0 && element.setAttribute('style', styles);
+    // Cards also update their parent and sibling styles
+    if (isCard) {
+      element?.nextElementSibling?.classList?.add('tw-flex', 'tw-w-full');
+      displayParent?.classList?.add('tw-flex');
+    }
   }
 }
 
@@ -212,15 +217,13 @@ function displayCardWarnings(taskLists, projectID) {
 
         if (flag.length > 0 || existingFlag) {
           // Decide styles based on how many flags there are. '🤷‍♀️' is 5 chars long, any more than that means more than 1 flag
-          styles = `${flag.length > 5 ? 'line-height: .8;' : ''} width: 13.4%; padding: 0.5rem; justify-content: center; overflow: visible; z-index: 1; margin-right: 3px;`;
-          existingFlag ? updateDisplayElement(targetElement, flag, styles)
-                      : addCardElement(
-                        targetElement,
-                        flag,
-                        styles,
-                        `c-card column_card tw-flex ${list.id === -1 ? 'completed_task' : ''}`,
-                        'flagId',
-                        dataID);
+          styles = `${
+            flag.length > 5 ? 'line-height: .8;' : ''
+          } width: 13.4%; padding: 0.5rem; justify-content: center; align-content: center; overflow: visible; z-index: 1; margin-right: 3px;`;
+          classes = `c-card column_card tw-flex ${list.id === -1 ? 'completed_task' : ''}`;
+
+          existingFlag ? updateDisplayElement(targetElement, flag, styles, classes, true)
+                      : addCardElement(targetElement, flag, styles, classes, 'flagId', dataID);
         }
       }
     })
