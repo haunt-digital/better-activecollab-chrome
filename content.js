@@ -220,7 +220,7 @@ function displayCardWarnings(taskLists, projectID) {
           // Decide styles based on how many flags there are. '🤷‍♀️' is 5 chars long, any more than that means more than 1 flag
           styles = `${
             flag.length > 5 ? 'line-height: .8;' : ''
-          } width: 13.4%; padding: 0.5rem; justify-content: center; align-content: center; overflow: visible; z-index: 1; margin-right: 3px;`;
+          } width: 13.4%; padding: 0.5rem; text-align: center; justify-content: center; align-items: center; overflow: visible; z-index: 1; margin-right: 3px;`;
           classes = `c-card column_card tw-flex ${list.id === -1 ? 'completed_task' : ''}`;
 
           existingFlag ? updateDisplayElement(targetElement, flag, styles, classes, true)
