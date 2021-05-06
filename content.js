@@ -216,7 +216,7 @@ function displayCardWarnings(taskLists, projectID) {
                         targetElement,
                         flag,
                         styles,
-                        'c-card column_card tw-flex',
+                        `c-card column_card tw-flex ${list.id === -1 ? 'completed_task' : ''}`,
                         'flagId',
                         dataID);
         }
