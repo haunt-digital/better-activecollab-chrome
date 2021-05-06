@@ -1,6 +1,6 @@
 {
   "name": "Better ActiveCollab",
-  "version": "1.1",
+  "version": "1.2",
   "description": "Add list time estimation & tracking sums, and warnings to overdue or unestimated task cards.",
   "permissions": ["declarativeContent", "tabs"],
   "background": {
